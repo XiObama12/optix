@@ -85,21 +85,27 @@ func (fb *FallbackBroker) UsingFallback() bool {
 	return fb.usingFallback
 }
 
-// SourceName returns a display-friendly data source identifier.
+// SourceName reports which source is actually serving calls. It prefers the
+// active broker's own label so nested fallback chains (IBKR -> Longbridge ->
+// Yahoo) name the winner instead of assuming the outer fallback flag.
 func (fb *FallbackBroker) SourceName() string {
-	if fb.usingFallback {
-		return "Yahoo Finance"
+	if fb.active == nil {
+		return "not connected"
 	}
-	return "IBKR"
+	if n, ok := fb.active.(SourceNamer); ok {
+		return n.SourceName()
+	}
+	// Brokers with no label of their own: infer from the fallback flag.
+	if fb.usingFallback {
+		return "Yahoo Finance (delayed ~15 min)"
+	}
+	return "IBKR (real-time)"
 }
 
 // SourceBanner returns a one-line status banner showing data source and delay info.
 // Suitable for printing after Connect().
 func (fb *FallbackBroker) SourceBanner() string {
-	if fb.usingFallback {
-		return "📡 Data source: Yahoo Finance (delayed ~15 min)"
-	}
-	return "📡 Data source: IBKR (real-time)"
+	return "📡 Data source: " + fb.SourceName()
 }
 
 // Ping delegates to the active broker if it implements Pinger, otherwise

@@ -1627,3 +1627,6 @@ func atmMetricJobs(sorted []optionMetricJob) []optionMetricJob {
 }
 
 func (c *Client) CanSampleOptionStress() bool { return true }
+
+// SourceName identifies this source in the data-source banner.
+func (c *Client) SourceName() string { return "IBKR (real-time)" }

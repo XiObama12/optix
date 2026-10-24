@@ -436,3 +436,6 @@ func RunFetcher(ctx context.Context, pythonBin string, args ...string) ([]byte, 
 func (c *Client) runFetcher(ctx context.Context, args ...string) ([]byte, error) {
 	return RunFetcher(ctx, c.cfg.PythonBin, args...)
 }
+
+// SourceName identifies this source in the data-source banner.
+func (c *Client) SourceName() string { return "Yahoo Finance (delayed ~15 min)" }

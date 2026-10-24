@@ -15,6 +15,7 @@ import (
 	"github.com/IS908/optix/internal/broker"
 	"github.com/IS908/optix/internal/broker/factory"
 	"github.com/IS908/optix/internal/broker/ibkr"
+	"github.com/IS908/optix/internal/broker/longbridge"
 	"github.com/IS908/optix/internal/broker/yfinance"
 	"github.com/IS908/optix/internal/datastore/sqlite"
 	"github.com/IS908/optix/internal/server"
@@ -28,13 +29,14 @@ import (
 // Scheduler workers start at 10 and the web pool starts at 30.
 const maxPainClientID = 8
 
-// validateSourceFlag accepts "ibkr", "yfinance", or "auto" (case-insensitive).
+// validateSourceFlag accepts "ibkr", "yfinance", "longbridge" or "auto"
+// (case-insensitive).
 func validateSourceFlag(s string) error {
 	switch strings.ToLower(s) {
-	case "ibkr", "yfinance", "auto":
+	case "ibkr", "yfinance", "longbridge", "auto":
 		return nil
 	}
-	return fmt.Errorf("invalid --source %q: use ibkr | yfinance | auto", s)
+	return fmt.Errorf("invalid --source %q: use ibkr | yfinance | longbridge | auto", s)
 }
 
 func validateOutputFormat(s string) error {
@@ -221,6 +223,17 @@ func buildMaxPainBroker(ctx context.Context, source string) (broker.Broker, stri
 			return nil, "", fmt.Errorf("Yahoo Finance fetch failed: %w", err)
 		}
 		return b, "📡 Data source: Yahoo Finance (delayed)", nil
+	case "longbridge":
+		b := longbridge.New(longbridge.Config{PythonBin: pythonBin})
+		if err := b.Connect(ctx); err != nil {
+			return nil, "", fmt.Errorf("Longbridge connect failed: %w", err)
+		}
+		// Probe once so an unreachable proxy or expired token fails here with
+		// a clear message instead of surfacing as an empty chain later.
+		if err := b.Ping(ctx); err != nil {
+			return nil, "", fmt.Errorf("Longbridge unreachable (check proxy and cli/.lb_token): %w", err)
+		}
+		return b, "📡 Data source: Longbridge (real-time)", nil
 	case "auto":
 		b := factory.NewWithFallback(ibkr.Config{Host: ibHost, Port: ibPort, ClientID: maxPainClientID}, pythonBin)
 		if err := b.Connect(ctx); err != nil {

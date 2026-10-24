@@ -15,6 +15,15 @@ type Pinger interface {
 	Ping(ctx context.Context) error
 }
 
+// SourceNamer is an optional interface for brokers that can describe
+// themselves in the data-source banner. FallbackBroker consults it so a
+// multi-source chain reports the source that actually connected rather than
+// guessing from the fallback flag.
+type SourceNamer interface {
+	// SourceName is the human label, e.g. "IBKR (real-time)".
+	SourceName() string
+}
+
 // OIFetcher is an optional interface for brokers that can populate
 // per-contract Open Interest on top of the structure-only chain returned
 // by GetOptionChain. Both IBKR and yfinance implement this; brokers that
